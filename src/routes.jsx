@@ -7,8 +7,8 @@ import {
 } from "@heroicons/react/24/solid";
 import { Home } from "@/pages/home";
 import { Profile } from "@/pages/Profile";
-import { SignIn } from "@/pages/sign-in";
-import { SignUp } from "@/pages/sign-up";
+import { SignIn } from "@/pages/Sign-in";
+import { SignUp } from "@/pages/Sign-up";
 import QRScanner from "@/components/QRScanner";
 import PreorderPage from "@/pages/Preorderpage";
 import { CafeList } from "@/pages/CafeList";
