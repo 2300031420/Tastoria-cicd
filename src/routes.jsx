@@ -6,22 +6,22 @@ import {
   BuildingStorefrontIcon,
 } from "@heroicons/react/24/solid";
 import { Home } from "@/pages/Home";
-import { Profile } from "@/pages/Profile";
-import { SignIn } from "@/pages/SignIn";
-import { SignUp } from "@/pages/SignUp";
-import QRScanner from "@/components/QRScanner";
-import PreorderPage from "@/pages/Preorderpage";
-import { CafeList } from "@/pages/CafeList";
-import OrderManagement from "./pages/admin/OrderManagement"; // adjust the path if needed
+import { Profile } from "@/pages/Profile.jsx";
+import { SignIn } from "@/pages/SignIn.jsx";
+import { SignUp } from "@/pages/SignUp.jsx";
+import QRScanner from "@/components/QRScanner.jsx";
+import PreorderPage from "@/pages/Preorderpage.jsx";
+import { CafeList } from "@/pages/CafeList.jsx";
+import OrderManagement from "@/pages/admin/OrderManagement.jsx"; // adjust the path if needed
 
-import { AdminLogin } from "./pages/AdminLogin";
-import { AdminPortal } from "./pages/AdminPortal";
-import { MenuManagement } from "./pages/admin/MenuManagement";
-import { CafeManagement } from "./pages/admin/CafeManagement";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import PreorderModal from "./pages/PreorderModal";
+import { AdminLogin } from "@/pages/AdminLogin.jsx";
+import { AdminPortal } from "@/pages/AdminPortal.jsx";
+import { MenuManagement } from "@/pages/admin/MenuManagement.jsx";
+import { CafeManagement } from "@/pages/admin/CafeManagement.jsx";
+import { ProtectedRoute } from "@/components/ProtectedRoute.jsx";
+import PreorderModal from "@/pages/PreorderModal.jsx";
 
-// Regular user routes
+// Regular user routes@
 export const userRoutes = [
   {
     icon: HomeIcon,
