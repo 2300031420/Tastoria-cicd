@@ -47,6 +47,6 @@ Firebase, MongoDB, and Vercel, for providing robust and scalable infrastructure 
 ### Installation
 
 ```bash
-git clone https://github.com/2300031420/tastoria5.git
+git clone (https://github.com/2300031420/Tastoria-cicd.git)
 cd tastoria5
 npm install
