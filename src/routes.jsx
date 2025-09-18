@@ -5,17 +5,17 @@ import {
   QrCodeIcon,
   BuildingStorefrontIcon,
 } from "@heroicons/react/24/solid";
-import { Home } from "@/pages/home";
+import { Home } from "@/pages/Home";
 import { Profile } from "@/pages/Profile";
-import { SignIn } from "@/pages/Sign-in";
-import { SignUp } from "@/pages/Sign-up";
+import { SignIn } from "@/pages/SignIn";
+import { SignUp } from "@/pages/SignUp";
 import QRScanner from "@/components/QRScanner";
-import PreorderPage from "@/pages/Preorderpage";
+import PreorderPage from "@/pages/PreorderPage";
 import { CafeList } from "@/pages/CafeList";
 import OrderManagement from "./pages/admin/OrderManagement"; // adjust the path if needed
 
-import { AdminLogin } from "./pages/admin-login";
-import { AdminPortal } from "./pages/admin-portal";
+import { AdminLogin } from "./pages/AdminLogin";
+import { AdminPortal } from "./pages/AdminPortal";
 import { MenuManagement } from "./pages/admin/MenuManagement";
 import { CafeManagement } from "./pages/admin/CafeManagement";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
