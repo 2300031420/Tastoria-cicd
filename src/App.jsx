@@ -4,7 +4,7 @@ import { Navbar } from "@/widgets/layout";
 import routes from "@/routes";
 import { Home } from "./pages/home";
 import QRScanner from "./components/QRScanner";
-import PreorderPage from "./pages/preorderpage";
+import PreorderPage from "./pages/Preorderpage";
 import { CafeList } from "./pages/CafeList";
 import { SlotBooking } from "./pages/SlotBooking";
 import { SignIn } from './pages/sign-in';
