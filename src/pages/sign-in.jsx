@@ -62,9 +62,10 @@ const handleSubmit = async (e) => {
     const { success, user, error } = await login(email, password); // <-- email & password as strings
     if (success) {
       try {
+        // In the handleSubmit function, update the normalized user object
         const normalized = {
-          uid: user?._id || user?.uid || email,
-          _id: user?._id,
+          uid: user?.id || user?._id || user?.uid || email, // Add user.id as first priority
+          _id: user?.id || user?._id,
           email: user?.email || email,
           name: user?.name || user?.displayName || email.split('@')[0],
           displayName: user?.displayName || user?.name || email.split('@')[0],

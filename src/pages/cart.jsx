@@ -146,28 +146,30 @@ function Cart() {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
+  // In the placeOrder function, remove the phone number validation
   const placeOrder = async () => {
     if (!isAuthenticated || !contextUser) {
       toast.error("Please sign in to place an order.");
       return;
     }
-
+  
     if (cartItems.length === 0) {
       toast.error("Your cart is empty.");
       return;
     }
-
+  
     if (!name.trim()) {
       toast.error("Please enter your name.");
       return;
     }
-    if (!phone.trim()) {
-      toast.error("Please enter your phone number.");
-      return;
-    }
-
+    // Remove the phone validation check
+    // if (!phone.trim()) {
+    //   toast.error("Please enter your phone number.");
+    //   return;
+    // }
+  
     setPlacingOrder(true);
-
+  
     // Group items by restaurant
     const ordersByRestaurant = {};
     cartItems.forEach(item => {
@@ -179,18 +181,18 @@ function Cart() {
         quantity: item.quantity
       });
     });
-
+  
     // Place orders
     for (const [restaurantId, items] of Object.entries(ordersByRestaurant)) {
       const orderData = {
         customerName: name,
-        phone: phone,
+        phone: phone || "", // Make phone optional by providing a default empty string
         address: "", 
         restaurant: restaurantId,
         items,
         estimatedTime: 0 
       };
-
+  
       try {
         await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/orders`, orderData);
         toast.success(`Order placed`);
@@ -199,7 +201,7 @@ function Cart() {
         toast.error(`Failed to place order for restaurant ${restaurantId}`);
       }
     }
-
+  
     // Clear cart
     const userId = contextUser?.uid || contextUser?._id || contextUser?.email;
     setCartItems([]);
@@ -243,9 +245,10 @@ function Cart() {
                   onChange={(e) => setName(e.target.value)}
                   className="p-2 border rounded"
                 />
+              
                 <input
                   type="text"
-                  placeholder="Phone Number"
+                  placeholder="Phone Number (Optional)"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="p-2 border rounded"

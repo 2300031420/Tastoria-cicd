@@ -225,13 +225,18 @@ function PreorderPage() {
     });
   };
 
+  // In the addToCart function
   const addToCart = (item) => {
     if (isAuthenticated && contextUser) {
-      const userId = contextUser.uid || contextUser._id || contextUser.email;
+      // Add more fallbacks for userId
+      const userId = contextUser.uid || contextUser.id || contextUser._id || contextUser.email;
       if (!userId) {
         toast.error('User ID not found');
         return;
       }
+      
+      // Log the userId for debugging
+      console.log('Using cart key with userId:', userId);
       
       const cartKey = `cart_${userId}`;
       let cartItems = [];
@@ -275,9 +280,11 @@ function PreorderPage() {
     }
   };
 
+  // In the removeFromCart function
   const removeFromCart = (itemId) => {
     if (isAuthenticated && contextUser) {
-      const userId = contextUser.uid || contextUser._id || contextUser.email;
+      // Add more fallbacks for userId
+      const userId = contextUser.uid || contextUser.id || contextUser._id || contextUser.email;
       if (!userId) {
         toast.error('User ID not found');
         return;
@@ -322,33 +329,47 @@ function PreorderPage() {
     setModalQuantity(prev => Math.max(1, prev + change));
   };
 
+  // Replace the handleAddToCartFromModal function with this updated version
   const handleAddToCartFromModal = () => {
-    if (auth.currentUser) {
-      const userId = auth.currentUser.uid;
-      const savedCart = localStorage.getItem(`cart_${userId}`);
+    if (isAuthenticated && (auth.currentUser || contextUser)) {
+      // Use contextUser if available, otherwise use Firebase auth
+      const userId = contextUser?.uid || contextUser?.id || contextUser?._id || contextUser?.email || auth.currentUser?.uid;
+      
+      if (!userId) {
+        toast.error('User ID not found');
+        return;
+      }
+      
+      console.log('Using cart key with userId:', userId);
+      
+      const cartKey = `cart_${userId}`;
+      const savedCart = localStorage.getItem(cartKey);
       let cartItems = savedCart ? JSON.parse(savedCart) : [];
-
+  
       const itemToAdd = {
         ...selectedItem,
-        quantity: modalQuantity
+        quantity: modalQuantity,
+        restaurant: restaurantId
       };
-
+  
       const existingItemIndex = cartItems.findIndex(item => item.id === selectedItem.id);
-
+  
       if (existingItemIndex !== -1) {
         cartItems[existingItemIndex].quantity = modalQuantity;
       } else {
         cartItems.push(itemToAdd);
       }
-
-      localStorage.setItem(`cart_${userId}`, JSON.stringify(cartItems));
+  
+      localStorage.setItem(cartKey, JSON.stringify(cartItems));
       setItemsInCart(prev => ({ ...prev, [selectedItem.id]: true }));
       setQuantities(prev => ({ ...prev, [selectedItem.id]: modalQuantity }));
-
+  
       window.dispatchEvent(new Event('cartUpdated'));
       handleCloseModal();
-
+  
       toast.success(`Added ${modalQuantity} ${selectedItem.name}(s) to cart`);
+    } else {
+      toast.error('Please sign in to add items to cart');
     }
   };
 

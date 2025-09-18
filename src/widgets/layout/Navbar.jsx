@@ -64,23 +64,24 @@ const [currentUser, setCurrentUser] = useState(user || null);
   // Check authentication status on mount and when localStorage changes
 // ✅ Cart quantity effect
 useEffect(() => {
+  // In the updateCartQuantity function
   const updateCartQuantity = () => {
     const authUser = currentUser || user;
     if (!authUser) {
       setCartQuantity(0);
       return;
     }
-
-    // Use uid if available, otherwise _id, otherwise email
-    const identifier = authUser.uid || authUser._id || authUser.email;
+  
+    // Add more fallbacks for identifier
+    const identifier = authUser.uid || authUser.id || authUser._id || authUser.email;
     const cartKey = `cart_${identifier}`;
     const savedCart = localStorage.getItem(cartKey);
-
+  
     if (!savedCart) {
       setCartQuantity(0);
       return;
     }
-
+  
     try {
       const cartItems = JSON.parse(savedCart);
       const totalQuantity = cartItems.reduce(
