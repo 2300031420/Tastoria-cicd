@@ -7,8 +7,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from "react-icons/fc";
-
-console.log('API URL:', import.meta.env.VITE_API_URL);
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "../firebase/config"; // adjust path
 
 export function SignUp() {
   const navigate = useNavigate();
@@ -18,8 +18,6 @@ export function SignUp() {
     password: '',
     confirmPassword: ''
   });
-  const [showOTPInput, setShowOTPInput] = useState(false);
-  const [otp, setOTP] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,7 +29,7 @@ export function SignUp() {
     }));
   };
 
-  const handleInitialSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -56,23 +54,22 @@ export function SignUp() {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          confirmPassword: formData.confirmPassword
         })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setShowOTPInput(true);
-        toast.success('OTP sent to your email!');
+        toast.success('Registration successful! Please sign in.');
+        navigate('/sign-in');
       } else {
         throw new Error(data.message || 'Failed to create account');
       }
@@ -85,46 +82,40 @@ export function SignUp() {
     }
   };
 
-  const handleOTPVerification = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          otp: otp
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('Registration successful! Please sign in.');
-        navigate('/sign-in');
-      } else {
-        throw new Error(data.message || 'OTP verification failed');
-      }
-    } catch (error) {
-      console.error('OTP verification error:', error);
-      toast.error(error.message || 'Failed to verify OTP');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const googleProvider = new GoogleAuthProvider();
 
   const handleGoogleSignUp = async () => {
     try {
       setIsLoading(true);
-      // Implement Google OAuth here
-      toast.error('Google sign-up is not implemented yet');
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/google-signin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: user.displayName,
+          email: user.email,
+          firebaseUid: user.uid,
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', user.accessToken || 'mock-jwt-token');
+        toast.success("Signed in with Google successfully!");
+        const redirectPath = localStorage.getItem('redirectAfterLogin') || '/preorder';
+        localStorage.removeItem('redirectAfterLogin');
+        navigate(redirectPath, { replace: true });
+      } else {
+        throw new Error(data.message || "Google sign-in failed on server");
+      }
     } catch (error) {
-      console.error('Google signup error:', error);
-      toast.error(error.message || 'Google sign-up failed');
+      console.error('Google sign-in error:', error);
+      const errorMessage = error.message || 'Failed to sign in with Google';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +134,7 @@ export function SignUp() {
         <div className="text-center">
           <Typography variant="h2" className="font-bold mb-4">Join Us</Typography>
           <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">
-            {showOTPInput ? 'Enter the verification code sent to your email.' : 'Enter your details to register.'}
+            Enter your details to register.
           </Typography>
         </div>
 
@@ -153,89 +144,60 @@ export function SignUp() {
           </div>
         )}
 
-        {!showOTPInput ? (
-          <>
-            {/* Google Sign Up Button */}
-            <button
-              onClick={handleGoogleSignUp}
-              className="flex items-center justify-center gap-2 w-full max-w-sm px-6 py-3 mt-6 text-gray-700 bg-white border border-gray-300 rounded-lg shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
-            >
-              <FcGoogle className="w-5 h-5" />
-              <span className="font-medium">Continue with Google</span>
-            </button>
+        {/* Google Sign Up Button */}
+        <button
+          onClick={handleGoogleSignUp}
+          className="flex items-center justify-center gap-2 w-full max-w-sm px-6 py-3 mt-6 text-gray-700 bg-white border border-gray-300 rounded-lg shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+        >
+          <FcGoogle className="w-5 h-5" />
+          <span className="font-medium">Continue with Google</span>
+        </button>
 
-            <div className="w-full max-w-sm mt-6 mb-4 flex items-center justify-center">
-              <div className="flex-1 border-t border-gray-300"></div>
-              <span className="px-4 text-gray-500 text-sm">OR</span>
-              <div className="flex-1 border-t border-gray-300"></div>
-            </div>
+        <div className="w-full max-w-sm mt-6 mb-4 flex items-center justify-center">
+          <div className="flex-1 border-t border-gray-300"></div>
+          <span className="px-4 text-gray-500 text-sm">OR</span>
+          <div className="flex-1 border-t border-gray-300"></div>
+        </div>
 
-            {/* Registration Form */}
-            <form className="mt-8 mb-2 w-80 max-w-screen-lg sm:w-96" onSubmit={handleInitialSubmit}>
-              <div className="mb-4 flex flex-col gap-6">
-                <Input
-                  size="lg"
-                  label="Name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                />
-                <Input
-                  size="lg"
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                />
-                <Input
-                  type="password"
-                  size="lg"
-                  label="Password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                />
-                <Input
-                  type="password"
-                  size="lg"
-                  label="Confirm Password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <Button className="mt-6" fullWidth type="submit" disabled={isLoading}>
-                {isLoading ? "Creating Account..." : "Create Account"}
-              </Button>
-            </form>
-          </>
-        ) : (
-          // OTP Verification Form
-          <form className="mt-8 mb-2 w-80 max-w-screen-lg sm:w-96" onSubmit={handleOTPVerification}>
-            <div className="mb-4">
-              <Input
-                size="lg"
-                label="Verification Code"
-                value={otp}
-                onChange={(e) => setOTP(e.target.value)}
-                placeholder="Enter 6-digit code"
-              />
-            </div>
-            <Button className="mt-6" fullWidth type="submit" disabled={isLoading}>
-              {isLoading ? "Verifying..." : "Verify & Create Account"}
-            </Button>
-            <Button
-              variant="text"
-              color="blue-gray"
-              className="mt-4"
-              fullWidth
-              onClick={() => setShowOTPInput(false)}
-            >
-              Back to Registration
-            </Button>
-          </form>
-        )}
+        {/* Registration Form */}
+        <form className="mt-8 mb-2 w-80 max-w-screen-lg sm:w-96" onSubmit={handleSubmit}>
+          <div className="mb-4 flex flex-col gap-6">
+            <Input
+              size="lg"
+              label="Name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+            />
+            <Input
+              size="lg"
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+            />
+            <Input
+              type="password"
+              size="lg"
+              label="Password"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+            />
+            <Input
+              type="password"
+              size="lg"
+              label="Confirm Password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+            />
+          </div>
+          <Button className="mt-6" fullWidth type="submit" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Create Account"}
+          </Button>
+        </form>
 
         <Typography variant="paragraph" className="text-center text-blue-gray-500 font-medium mt-4">
           Already have an account?

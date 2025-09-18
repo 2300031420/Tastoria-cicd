@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -25,6 +25,35 @@ export function Home() {
   const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
   const { isAuthenticated } = useAuth();
+  const [cafes, setCafes] = useState([]);
+  const [cafesLoading, setCafesLoading] = useState(true);
+  const [cafesError, setCafesError] = useState(null);
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  useEffect(() => {
+    let mounted = true;
+    const loadCafes = async () => {
+      try {
+        setCafesLoading(true);
+        const res = await fetch(`${API_URL}/api/restaurants`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const list = Array.isArray(data?.restaurants) ? data.restaurants : (data?.data || []);
+        if (mounted) {
+          setCafes(list);
+        }
+      } catch (err) {
+        console.error("Failed to load cafes:", err);
+        if (mounted) setCafesError(err.message || "Failed to load cafes");
+      } finally {
+        if (mounted) setCafesLoading(false);
+      }
+    };
+    loadCafes();
+    return () => { mounted = false; };
+  }, [API_URL]);
+
+  const toSlug = (text) => text?.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') || '';
 
   // Updated navigation handlers with auth check
   const handlePreorderClick = () => {
@@ -53,14 +82,14 @@ export function Home() {
 
   const handleOrderNow = (restaurantId, itemId) => {
     if (isAuthenticated) {
-      navigate(`/preorder/${restaurantId}`, {
+      navigate(`/preorderpage/${restaurantId}`, {
         state: { selectedItemId: itemId }
       });
       window.dispatchEvent(new CustomEvent('closeNavbar'));
     } else {
       toast.error("Please sign in to place an order");
       // Save the intended destination
-      localStorage.setItem('redirectAfterLogin', `/preorder/${restaurantId}`);
+      localStorage.setItem('redirectAfterLogin', `/preorderpage/${restaurantId}`);
       navigate('/sign-in');
     }
   };
@@ -79,71 +108,36 @@ export function Home() {
     }
   };
 
-  const handleCafeClick = (e, cafeId) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (isAuthenticated) {
-      navigate(`/preorder/${cafeId}`);
+  const handleCafeClick = async (cafeIdOrName) => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to view the cafe");
+      localStorage.setItem('redirectAfterLogin', `/preorderpage/${cafeIdOrName}`);
+      return navigate('/sign-in');
+    }
+
+    try {
+      const target = String(cafeIdOrName);
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(target);
+      let restaurantParam = target;
+
+      if (!isObjectId) {
+        const res = await fetch(`${API_URL}/api/restaurants`);
+        const data = await res.json();
+        const restaurants = Array.isArray(data?.restaurants) ? data.restaurants : [];
+        const slug = toSlug(target);
+        const match = restaurants.find(r => (
+          r._id === target || toSlug(r.name) === slug || r.slug === slug
+        ));
+        if (match?._id) restaurantParam = match._id;
+      }
+
+      navigate(`/preorderpage/${restaurantParam}`, { state: { restaurantId: restaurantParam } });
       window.dispatchEvent(new CustomEvent('closeNavbar'));
-    } else {
-      toast.error("Please sign in to view menu");
-      // Save the intended destination
-      localStorage.setItem('redirectAfterLogin', `/preorder/${cafeId}`);
-      navigate('/sign-in');
+    } catch (e) {
+      console.error('Failed to resolve restaurant:', e);
+      navigate(`/preorderpage/${cafeIdOrName}`, { state: { restaurantId: cafeIdOrName } });
     }
   };
-
-  const partneredCafes = [
-    {
-      id: "hangout-cafe",
-      name: "Hangout Cafe",
-      image: "/img/Hangout.jpg",
-      description: "Authentic Italian pizzas and pasta",
-      rating: 4.5,
-      specialty: "Italian Cuisine",
-      location: "Parbhani",
-      menu: [
-        {
-          id: 1,
-          name: "Margherita Pizza",
-          price: 12.99,
-          description: "Fresh tomatoes, mozzarella, and basil",
-          image: "/img/pizza.jpg"
-        },
-      ]
-    },
-    {
-      id: "ttmm",
-      name: "TTmm",
-      image: "/img/ttmm.jpg",
-      description: "Gourmet burgers and fries",
-      rating: 4.3,
-      specialty: "American Cuisine",
-      location: "Parbhani",
-      menu: []
-    },
-    {
-      id: "cafe-house",
-      name: "Cafe House",
-      image: "/img/cafeHouse.jpg",
-      description: "Fresh and authentic Japanese sushi",
-      rating: 4.7,
-      specialty: "Japanese Cuisine",
-      location: "Parbhani",
-      menu: []
-    },
-    {
-      id: "golden-bakery",
-      name: "Golden Bakery",
-      image: "/img/golden.jpg",
-      description: "Authentic Indian cuisine",
-      rating: 4.4,
-      specialty: "Indian Cuisine",
-      location: "Parbhani",
-      menu: []
-    }
-  ];
 
   const features = [
    {
@@ -171,7 +165,6 @@ export function Home() {
       title: "Explore Menus",
       description: "Discover restaurants near you",
       icon: BuildingStorefrontIcon,
-      path: "/preorderpage",
       color: "orange"
     }
   ].map(feature => ({
@@ -182,7 +175,7 @@ export function Home() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="relative flex h-[45vh] sm:h-[45vh] md:h-[50vh] lg:h-[70vh] content-center items-center justify-center pt-24 pb-32">
-        <div className="absolute top-0 h-full w-full bg-[url('/img/background-3.jpg')] bg-cover bg-center" />
+        <div className="absolute top-0 h-full w-full bg-[url('/img/background-3.webp')] bg-cover bg-center" />
         <div className="absolute top-0 h-full w-full bg-black/70 bg-cover bg-center" />
         <div className="max-w-8xl container relative mx-auto px-4">
           <div className="flex flex-wrap items-center">
@@ -418,17 +411,19 @@ export function Home() {
 
           <div className="relative">
             <div className="overflow-x-auto pb-6 hide-scrollbar">
-              <div className="flex flex-nowrap gap-6 px-4 sm:px-0">
-                {partneredCafes.map((cafe) => (
+              <div className="flex flex-nowrap gap-6 px-4 sm:px-0 items-stretch">
+                {cafes.map((cafe) => (
                   <Card 
-                    key={cafe.id}
-                    className="w-[280px] sm:w-[320px] lg:w-[400px] flex-shrink-0 hover:shadow-xl transition-all duration-300"
+                    key={cafe._id || cafe.id}
+                    className="w-[280px] sm:w-[320px] lg:w-[400px] flex-shrink-0 hover:shadow-xl transition-all duration-300 flex flex-col h-full min-h-[440px]"
                   >
-                    <CardHeader floated={false} className="h-48 sm:h-56">
+                    {/* fixed height + overflow-hidden prevents layout jumps */}
+                    <CardHeader floated={false} className="relative h-44 sm:h-56 lg:h-64 flex-shrink-0 overflow-hidden">
                       <img
-                        src={cafe.image}
+                        src={cafe.images?.[0] || cafe.image || '/img/placeholder-food.jpg'}
                         alt={cafe.name}
-                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.onerror = null; e.target.src = '/img/placeholder-food.jpg'; }}
+                        className="block w-full h-full object-cover object-center"
                       />
                       <div className="absolute top-4 right-4 bg-white px-2 py-1 rounded-full shadow-md">
                         <Typography className="flex items-center gap-1">
@@ -437,30 +432,36 @@ export function Home() {
                         </Typography>
                       </div>
                     </CardHeader>
-                    <CardBody className="p-6 hover:bg-gray-50 transition-colors duration-300">
+                    {/* make body flex and space between so button sticks to bottom */}
+                    <CardBody className="p-6 hover:bg-gray-50 transition-colors duration-300 flex-1 flex flex-col justify-between">
+                      <div>
                       <Typography variant="h5" color="blue-gray" className="mb-3 font-bold text-xl">
                         {cafe.name}
                       </Typography>
-                      <Typography className="font-normal text-blue-gray-500 mb-3 text-lg">
+                        <Typography className="font-normal text-blue-gray-500 mb-3 text-base line-clamp-3">
                         {cafe.description}
                       </Typography>
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        <span className="bg-blue-gray-50 px-4 py-2 rounded-full text-base hover:bg-blue-gray-100 transition-colors">
-                          {cafe.specialty}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className="bg-blue-gray-50 px-4 py-2 rounded-full text-sm hover:bg-blue-gray-100 transition-colors">
+                            {cafe.specialty || cafe.cuisine}
                         </span>
-                        <span className="bg-blue-gray-50 px-4 py-2 rounded-full text-base hover:bg-blue-gray-100 transition-colors">
+                          <span className="bg-blue-gray-50 px-4 py-2 rounded-full text-sm hover:bg-blue-gray-100 transition-colors">
                           {cafe.location}
                         </span>
+                        </div>
                       </div>
+                      <div className="mt-4">
                       <button 
-                        onClick={(e) => handleCafeClick(e, cafe.id)}
-                        className="w-full mt-6 bg-blue-500 text-white py-3 px-4 rounded-md hover:bg-blue-600 transition-colors duration-300 transform hover:scale-105 text-lg"
+                          onClick={() => handleCafeClick(cafe._id || cafe.id || cafe.name)}
+                          className="w-full bg-blue-500 text-white py-3 px-4 rounded-md hover:bg-blue-600 transition-colors duration-300 transform hover:scale-105 text-lg"
                       >
                         View Menu
                       </button>
+                      </div>
                     </CardBody>
                   </Card>
                 ))}
+
               </div>
             </div>
           </div>
@@ -587,7 +588,7 @@ export function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/preorder" className="text-gray-400 hover:text-white transition-colors">
+                  <Link to="/preorderModal" className="text-gray-400 hover:text-white transition-colors">
                     Order Now
                   </Link>
                 </li>

@@ -10,14 +10,15 @@ import { SlotBooking } from "./pages/SlotBooking";
 import { SignIn } from './pages/sign-in';
 import { SignUp } from './pages/sign-up';
 import { Profile } from './pages/Profile';
-import PreorderModal from './pages/preorderModal';
+import PreorderModal from './pages/PreorderModal';
 import Cart from "./pages/cart";
 import { ChatBot } from './components/ChatBot';
 import { AdminLogin } from "./pages/admin-login";
 import { AdminPortal } from "./pages/admin-portal";
 import { MenuManagement } from "./pages/admin/MenuManagement";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-
+import CafeManagement from "./pages/admin/CafeManagement";
+import OrderManagement from "./pages/admin/OrderManagement";
 function App() {
   return (
     <>
@@ -38,13 +39,18 @@ function App() {
           <Route path="/cafes" element={<CafeList />} />
           <Route path="/book-slot/:cafeId" element={<SlotBooking />} />
           <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/preorder/:cafeId" element={<PreorderPage />} />
+          <Route path="/preorder/:restaurantId" element={<PreorderPage />} />
+          <Route path="/preorderpage/:restaurantId" element={<PreorderPage />} />
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin-portal" element={<AdminPortal />} />
           <Route path="/admin/menu" element={<MenuManagement />} />
+          <Route path="/admin/cafes" element={<CafeManagement />} />
+          <Route path="/admin/orders" element={<OrderManagement />} />
+          <Route path="/admin/orders/:filter" element={<OrderManagement />} />
+
           {/* Add a catch-all route for 404 */}
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>

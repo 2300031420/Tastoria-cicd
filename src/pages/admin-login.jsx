@@ -6,7 +6,6 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase/config"; // Import auth directly from config
 import { toast } from 'react-hot-toast';
 
 export function AdminLogin() {
@@ -15,21 +14,19 @@ export function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const auth = getAuth();
 
   const createAdminAccount = async () => {
     try {
       const adminEmail = "admin@tastoria.com";
       const adminPassword = "admin123";
-      
       const result = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-      console.log("Admin account created:", result.user);
-      alert("Admin account created successfully! You can now login.");
+      toast.success("Admin account created successfully! You can now login.");
     } catch (error) {
-      console.error("Error creating admin:", error);
       if (error.code === 'auth/email-already-in-use') {
-        alert("Admin account already exists. Please try logging in.");
+        toast("Admin account already exists. Please try logging in.");
       } else {
-        alert(`Error creating admin account: ${error.message}`);
+        toast.error(`Error creating admin account: ${error.message}`);
       }
     }
   };
@@ -40,20 +37,24 @@ export function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // Verify this is an admin email
-      if (!email.toLowerCase().includes('admin')) {
-        setError("Please use a valid administrator email address");
+      // Only allow admin email
+      if (email.toLowerCase() !== "admin@tastoria.com") {
+        setError("Please use the administrator email address");
         setIsLoading(false);
         return;
       }
 
-      // Call handleLogin with credentials
-      await handleLogin({ email, password });
-
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      // Store admin info
+      localStorage.setItem('user', JSON.stringify({
+        email: result.user.email,
+        uid: result.user.uid,
+        isAdmin: true
+      }));
+      localStorage.setItem('token', result.user.accessToken || 'mock-jwt-token');
+      navigate('/admin-portal');
     } catch (error) {
-      console.error("Error signing in:", error);
       let errorMessage = "An error occurred during sign in";
-      
       switch (error.code) {
         case 'auth/user-not-found':
         case 'auth/wrong-password':
@@ -66,41 +67,12 @@ export function AdminLogin() {
           errorMessage = "Too many attempts. Please try again later";
           break;
         default:
-          errorMessage = "An error occurred during sign in";
+          errorMessage = error.message || "An error occurred during sign in";
       }
-      
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleLogin = async (credentials) => {
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(credentials)
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store both token and user info
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify({
-          ...data.user,
-          isAdmin: true // Make sure this is set correctly from your backend
-        }));
-        navigate('/admin-portal');
-      } else {
-        toast.error(data.message || 'Login failed');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Login failed');
     }
   };
 
@@ -126,7 +98,7 @@ export function AdminLogin() {
             </Typography>
             <Input
               size="lg"
-              placeholder="admin@tastoria.admin.com"
+              placeholder="admin@tastoria.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className=" !border-t-blue-gray-200 focus:!border-t-gray-900"

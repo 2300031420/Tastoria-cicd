@@ -15,6 +15,7 @@ import {
   ClockIcon,
 } from "@heroicons/react/24/solid";
 import { toast } from 'react-hot-toast';
+import CafeManagement from './admin/CafeManagement';
 
 export function AdminPortal() {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ export function AdminPortal() {
   });
   const [menuItems, setMenuItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [trendingItems, setTrendingItems] = useState([]);
+const [salesData, setSalesData] = useState([]);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -76,25 +79,28 @@ export function AdminPortal() {
     }
   };
 
-  const fetchMenuItems = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/menu');
-      if (!response.ok) {
-        throw new Error('Failed to fetch menu items');
-      }
-      const data = await response.json();
-      setMenuItems(data);
-    } catch (error) {
-      console.error('Error fetching menu items:', error);
-      toast.error('Failed to load menu items');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetchTrendingItems = async () => {
+  try {
+    setIsLoading(true);
+    const token = localStorage.getItem("token");
+    const response = await fetch("http://localhost:5000/api/menu/trending", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error("Failed to fetch trending items");
+    const data = await response.json();
+    setTrendingItems(data);
+  } catch (error) {
+    console.error("Error fetching trending items:", error);
+    toast.error("Failed to load trending items");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   useEffect(() => {
-    fetchMenuItems();
+   fetchTrendingItems();
+
   }, []);
 
   const StatCard = ({ title, value, icon: Icon, color, percentage }) => (
@@ -222,14 +228,11 @@ export function AdminPortal() {
       actions={[
         { 
           label: "Manage Menu", 
-          onClick: () => navigate('/admin/menu')  // You'll need to create this route
+          onClick: () => navigate('/admin/menu')
         },
         { 
           label: "Add New Item", 
-          onClick: () => {
-            // You can either navigate to a new page or open a modal
-            navigate('/admin/menu/add');  // Create this route
-          }
+          onClick: () => navigate('/admin/menu')
         }
       ]}
     />
@@ -312,12 +315,23 @@ export function AdminPortal() {
               icon={ShoppingCartIcon}
               color="blue"
               actions={[
-                { label: "View Active Orders", onClick: () => navigate('/admin/orders/active') },
-                { label: "Order History", onClick: () => navigate('/admin/orders/history') }
+                { label: "Manage Orders", onClick: () => navigate('/admin/orders') },
+                { label: "Active Orders", onClick: () => navigate('/admin/orders?status=active') }
               ]}
             />
             
             {menuManagementCard}
+            
+            <ActionCard
+              title="Cafe Management"
+              description="Manage your restaurant cafes and locations"
+              icon={UserGroupIcon}
+              color="indigo"
+              actions={[
+                { label: "Manage Cafes", onClick: () => navigate('/admin/cafes') },
+                { label: "Add New Cafe",onClick: () => navigate('/admin/cafes') }
+              ]}
+            />
             
             <ActionCard
               title="Table Reservations"
@@ -337,7 +351,7 @@ export function AdminPortal() {
               <CardHeader floated={false} shadow={false} className="rounded-none p-4 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <Typography variant="h5" color="blue-gray" className="font-bold">
-                    Menu Overview
+                    Trending Items
                   </Typography>
                   <Button
                     variant="text"

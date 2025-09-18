@@ -28,11 +28,13 @@ export function Navbar({ brandName, routes = [], action }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [cartQuantity, setCartQuantity] = useState(0);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user, isAuthenticated, logout } = useAuth();
+const [currentUser, setCurrentUser] = useState(user || null);
+
 
   const hideNavigationRoutes = [
     '/cafes',
-    '/preorder',
+   //    '/preorder',
     '/qr-scanner',
     '/sign-in',
     '/sign-up',
@@ -60,88 +62,75 @@ export function Navbar({ brandName, routes = [], action }) {
   const isHomePage = location.pathname === "/";
 
   // Check authentication status on mount and when localStorage changes
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      
-      if (token && userData) {
-        try {
-          const user = JSON.parse(userData);
-          setCurrentUser(user);
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-          handleLogout();
-        }
-      } else {
-        setCurrentUser(null);
-      }
-    };
+// ✅ Cart quantity effect
+useEffect(() => {
+  const updateCartQuantity = () => {
+    const authUser = currentUser || user;
+    if (!authUser) {
+      setCartQuantity(0);
+      return;
+    }
 
-    // Check initially
-    checkAuth();
+    // Use uid if available, otherwise _id, otherwise email
+    const identifier = authUser.uid || authUser._id || authUser.email;
+    const cartKey = `cart_${identifier}`;
+    const savedCart = localStorage.getItem(cartKey);
 
-    // Listen for storage changes
-    window.addEventListener('storage', checkAuth);
-    
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-    };
-  }, []);
+    if (!savedCart) {
+      setCartQuantity(0);
+      return;
+    }
 
-  const isAuthenticated = Boolean(currentUser);
-
-  // Handle logout
-  const handleLogout = () => {
     try {
-      // Clear local storage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      // Clear user state
-      setCurrentUser(null);
-      
-      // Navigate to sign-in
-      navigate('/sign-in');
-      
-      toast.success('Logged out successfully');
+      const cartItems = JSON.parse(savedCart);
+      const totalQuantity = cartItems.reduce(
+        (total, item) => total + (Number(item.quantity) || 0),
+        0
+      );
+      setCartQuantity(totalQuantity);
     } catch (error) {
-      console.error("Logout error:", error);
-      navigate('/sign-in');
+      console.error("Error parsing cart:", error);
+      setCartQuantity(0);
     }
   };
 
-  // Update cart quantity
+  updateCartQuantity();
+  window.addEventListener("cartUpdated", updateCartQuantity);
+  return () => window.removeEventListener("cartUpdated", updateCartQuantity);
+}, [currentUser, user]);
+ // Keep both dependencies
+
+
+
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+  };
+
+
+
+
+
+  // Keep Firebase auth state in sync to ensure we have uid for cart key
   useEffect(() => {
-    const updateCartQuantity = () => {
-      if (currentUser) {
-        const cartKey = `cart_${currentUser.id}`;
-        const savedCart = localStorage.getItem(cartKey);
-        
-        if (savedCart) {
-          try {
-            const cartItems = JSON.parse(savedCart);
-            const totalQuantity = cartItems.reduce((total, item) => {
-              return total + (parseInt(item.quantity) || 0);
-            }, 0);
-            setCartQuantity(totalQuantity);
-          } catch (error) {
-            console.error('Error parsing cart:', error);
-            setCartQuantity(0);
-          }
-        } else {
-          setCartQuantity(0);
-        }
-      }
-    };
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      setCurrentUser(fbUser || null);
+    });
+    return () => unsubscribe();
+  }, []);
 
-    updateCartQuantity();
-    window.addEventListener('cartUpdated', updateCartQuantity);
+  // Also sync with context user if it changes (e.g., after profile load)
+  useEffect(() => {
+    if (user && !currentUser) {
+      setCurrentUser(user);
+    }
+  }, [user]);
 
-    return () => {
-      window.removeEventListener('cartUpdated', updateCartQuantity);
-    };
-  }, [currentUser]);
+  // Derive a display name and initial from available sources
+  const displayName = (user?.name) || currentUser?.displayName || currentUser?.email || "User";
+  const displayInitial = ((user?.name?.[0]) || (currentUser?.displayName?.[0]) || (currentUser?.email?.[0]) || "U").toUpperCase();
 
   const handleQRScan = (data) => {
     try {
@@ -255,18 +244,19 @@ export function Navbar({ brandName, routes = [], action }) {
         <div className="hidden lg:flex items-center ml-auto">{navList}</div>
         
         <div className="flex items-center gap-2">
-          {isAuthenticated && (
-            <Link to="/cart" className="relative inline-block">
-              <ShoppingCartIcon className="h-6 w-6 text-white" />
-              {cartQuantity > 0 && (
-                <div className="absolute -top-2 -right-2 bg-red-500 text-white 
-                  rounded-full h-5 w-5 flex items-center justify-center text-xs 
-                  font-bold transform scale-100">
-                  {cartQuantity}
-                </div>
-              )}
-            </Link>
-          )}
+    {isAuthenticated && (
+  <div className="relative flex items-center">
+    <Link to="/cart">
+      <ShoppingCartIcon className="h-6 w-6 text-white" />
+    </Link>
+    {cartQuantity > 0 && (
+      <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold z-20 translate-x-1/2 -translate-y-1/2">
+        {cartQuantity}
+      </span>
+    )}
+  </div>
+)}
+
 
           {isAuthenticated ? (
             <Menu>
@@ -278,10 +268,10 @@ export function Navbar({ brandName, routes = [], action }) {
                 >
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      {currentUser?.name?.[0]?.toUpperCase() || "U"}
+                      {displayInitial}
                     </div>
                     <Typography variant="small" className="font-normal text-white">
-                      {currentUser?.name || "User"}
+                      {displayName}
                     </Typography>
                   </div>
                 </Button>

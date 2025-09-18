@@ -22,6 +22,7 @@ export function ChatBot() {
     const messagesEndRef = useRef(null);
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -53,7 +54,7 @@ export function ChatBot() {
             return {
                 text: "I'll show you our amazing cakes!",
                 action: "navigateToRestaurant",
-                restaurantId: "cafe-house",
+                restaurantId: "golden-bakery",
                 requiresAuth: true
             };
         }
@@ -111,7 +112,7 @@ export function ChatBot() {
             return {
                 text: "I'll take you to Golden Bakery's page!",
                 action: "navigateToRestaurant",
-                restaurantId: "cafe-house",
+                restaurantId: "golden-bakery",
                 requiresAuth: true
             };
         }
@@ -194,14 +195,37 @@ export function ChatBot() {
         };
     };
 
+    const toSlug = (text) => text?.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') || '';
+
     const handleNavigation = async (restaurantId, requiresAuth, action = 'navigateToRestaurant') => {
         try {
             console.log("Attempting navigation to:", restaurantId);
+            const target = String(restaurantId);
+            const isObjectId = /^[0-9a-fA-F]{24}$/.test(target);
+
+            // Resolve provided id/slug/name to a real ObjectId if available
+            let resolvedId = target;
+            if (!isObjectId) {
+                try {
+                    const res = await fetch(`${API_URL}/api/restaurants`);
+                    const data = await res.json();
+                    const restaurants = Array.isArray(data?.restaurants) ? data.restaurants : [];
+                    const slug = toSlug(target);
+                    const match = restaurants.find(r => (
+                        r._id === target || toSlug(r.name) === slug || r.slug === slug
+                    ));
+                    if (match?._id) {
+                        resolvedId = match._id;
+                    }
+                } catch (e) {
+                    console.warn('Failed to resolve restaurant id, using provided target', e);
+                }
+            }
             
             // Check authentication if required
             if (requiresAuth && !isAuthenticated) {
-                // Store the intended destination
-                localStorage.setItem('redirectAfterLogin', '/preorderpage');
+                // Store the intended destination (use same route shape as the app)
+                localStorage.setItem('redirectAfterLogin', `/preorderpage/${resolvedId}`);
                 
                 // Add message about authentication requirement
                 setMessages(prev => [...prev, {
@@ -219,13 +243,15 @@ export function ChatBot() {
                 }, 2000);
                 return;
             }
-
+    
             // If authenticated or auth not required, proceed with navigation
             setIsOpen(false);
             if (action === 'navigateToRestaurant') {
-                navigate('/preorderpage', {
-                    state: { restaurantId: restaurantId }
+                // Navigate using the param-style route the app expects
+                navigate(`/preorderpage/${resolvedId}`, {
+                    state: { restaurantId: resolvedId }
                 });
+                
             } else if (restaurantId === 'ttmm-slot') {
                 navigate(`/book-slot/ttmm`);
             }
@@ -238,36 +264,27 @@ export function ChatBot() {
             }]);
         }
     };
+    
 
     const sendMessage = () => {
         if (!input.trim()) return;
         
-        try {
-            const userMessage = { text: input, sender: "user" };
-            setMessages(prev => [...prev, userMessage]);
-            setInput("");
-            setError(null);
-
-            // Get bot response
-            const response = getBotResponse(input);
-            
-            // Add bot response to messages
-            setTimeout(() => {
-                setMessages(prev => [...prev, { 
-                    text: response.text, 
-                    sender: "bot" 
-                }]);
-
-                // Handle navigation if needed
-                if (response.action === "navigateToRestaurant" && response.restaurantId) {
-                    setTimeout(() => handleNavigation(response.restaurantId, response.requiresAuth), 1000);
-                }
-            }, 500);
-        } catch (error) {
-            console.error("Error processing message:", error);
-            setError("Sorry, I couldn't process your message. Please try again.");
-        }
+        const userMessage = { text: input, sender: "user" };
+        setMessages(prev => [...prev, userMessage]);
+        setInput("");
+    
+        const response = getBotResponse(input);
+    
+        setTimeout(() => {
+            setMessages(prev => [...prev, { text: response.text, sender: "bot" }]);
+    
+            if (response.action === "navigateToRestaurant" && response.restaurantId) {
+                // Use the new handleNavigation
+                handleNavigation(response.restaurantId, response.requiresAuth);
+            }
+        }, 500);
     };
+    
 
     const handleKeyDown = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {

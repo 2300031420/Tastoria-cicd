@@ -12,11 +12,14 @@ import { SignUp } from "@/pages/sign-up";
 import QRScanner from "@/components/QRScanner";
 import PreorderPage from "@/pages/preorderpage";
 import { CafeList } from "@/pages/CafeList";
+import OrderManagement from "./pages/admin/OrderManagement"; // adjust the path if needed
 
 import { AdminLogin } from "./pages/admin-login";
 import { AdminPortal } from "./pages/admin-portal";
 import { MenuManagement } from "./pages/admin/MenuManagement";
+import { CafeManagement } from "./pages/admin/CafeManagement";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import PreorderModal from "./pages/PreorderModal";
 
 // Regular user routes
 export const userRoutes = [
@@ -66,6 +69,26 @@ export const adminRoutes = [
     path: "/admin/menu",
     element: <MenuManagement />,
   },
+  {
+    path: "/admin/menu/:restaurantId",
+    element: <MenuManagement />,
+  },
+  {
+    path: "/admin/cafes",
+    element: <CafeManagement />,
+  },
+  {
+    path: "/admin/cafes/add",
+    element: <CafeManagement />,
+  },
+  {
+    path: "/admin/orders",
+    element: <OrderManagement />,
+  },
+  {
+    path: "/admin/orders/:filter",
+    element: <OrderManagement />,
+  },
 ];
 
 // Combine all routes for the router
@@ -83,6 +106,23 @@ export const routes = [
     element: <SignUp />,
     showInNav: false, // This ensures it won't show in navigation
   },
+  // Preorder routes
+  {
+    path: "/preorderModal",
+    element: <PreorderModal />,
+    showInNav: false,
+  },
+  {
+    path: "/preorderpage",
+    element: <PreorderPage />,
+    showInNav: false,
+  },
+  {
+    path: "/preorderpage/:restaurantId",
+    element: <PreorderPage />,
+    showInNav: false,
+  },
+ 
 ];
 
 export default routes;

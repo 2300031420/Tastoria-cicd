@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
-import { 
+import {
   Input,
   Dialog,
   DialogHeader,
@@ -12,8 +12,10 @@ import {
   Typography,
 } from "@material-tailwind/react";
 import { MagnifyingGlassIcon, XMarkIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { ShoppingCartIcon as ShoppingCartSolid } from "@heroicons/react/24/solid";
 import { toast } from 'react-hot-toast';
 import { Toaster } from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 function PreorderPage() {
   const { restaurantId } = useParams();
@@ -26,13 +28,17 @@ function PreorderPage() {
   const [itemsInCart, setItemsInCart] = useState({});
   const navigate = useNavigate();
   const auth = getAuth();
+  const { user: contextUser, isAuthenticated } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredMenu, setFilteredMenu] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalQuantity, setModalQuantity] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
   const scrollContainerRef = useRef(null);
+  const slugify = (text) =>
+    text?.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 
   const categories = [
     { id: 'all', name: 'All Items', icon: '🍽️' },
@@ -45,162 +51,47 @@ function PreorderPage() {
   ];
 
   useEffect(() => {
+    // Prioritize restaurantId from params or state, then fallback to restaurantName
+    const rawId = restaurantId || location.state?.restaurantId || location.state?.restaurantName;
+    
+    // Check if it's a MongoDB ObjectId (24 hex characters) or a slug
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(rawId);
+    const restaurantSlug = isObjectId ? rawId : slugify(rawId);
+
+    if (!restaurantSlug) {
+      setLoading(false);
+      setMenu([]);
+      setFilteredMenu([]);
+      return;
+    }
+    
     const fetchMenu = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5000/api/menu');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/menu/${restaurantSlug}`);
+
         if (!response.ok) {
           throw new Error('Failed to fetch menu');
         }
         const data = await response.json();
-        setMenu(data);
-        setFilteredMenu(data);
+        const menuArray = Array.isArray(data?.menu)
+          ? data.menu
+          : Array.isArray(data)
+            ? data
+            : [];
+        setMenu(menuArray);
+        setFilteredMenu(menuArray);
       } catch (error) {
         console.error('Error fetching menu:', error);
-        // Fallback to dummy data in case of error
-        const dummyMenu = [
-          { 
-            id: 1, 
-            name: 'Pizza', 
-            price: 299, 
-            description: 'Delicious Italian pizza with fresh toppings',
-            category: 'lunch',
-            image: '/img/pizza.jpg',
-            detailedDescription: 'Hand-tossed pizza with a perfect blend of mozzarella cheese, fresh vegetables, and our secret sauce',
-            ingredients: ['Mozzarella Cheese', 'Fresh Tomatoes', 'Bell Peppers', 'Olive Oil', 'Italian Herbs'],
-            nutritionalInfo: {
-              calories: '266 kcal',
-              protein: '12g',
-              carbs: '30g',
-              fat: '10g'
-            },
-            preparationTime: '20-25 mins',
-            spicyLevel: 'Medium',
-            isVegetarian: true,
-            allergens: ['Dairy', 'Gluten'],
-            servingSize: '8 inches',
-            rating: 4.8
-          },
-          { 
-            id: 2, 
-            name: 'Classic Burger', 
-            price: 199, 
-            description: 'Juicy beef burger with cheese and veggies',
-            category: 'snacks',
-            image: '/img/burger.jpg',
-            detailedDescription: 'Premium beef patty with melted cheese, fresh lettuce, tomatoes, and our special sauce',
-            ingredients: ['Beef Patty', 'Cheese', 'Lettuce', 'Tomatoes', 'Special Sauce'],
-            nutritionalInfo: {
-              calories: '350 kcal',
-              protein: '20g',
-              carbs: '25g',
-              fat: '15g'
-            },
-            preparationTime: '15-20 mins',
-            spicyLevel: 'Mild',
-            isVegetarian: true,
-            allergens: ['Dairy', 'Gluten', 'Soy'],
-            servingSize: '1 piece',
-            rating: 4.6
-          },
-          { 
-            id: 3, 
-            name: 'Cappuccino', 
-            price: 149, 
-            description: 'Rich and creamy Italian coffee',
-            category: 'beverages',
-            image: '/img/Cappuccino.jpg',
-            detailedDescription: 'Premium coffee beans brewed to perfection with steamed milk and foam',
-            ingredients: ['Espresso', 'Steamed Milk', 'Milk Foam'],
-            nutritionalInfo: {
-              calories: '120 kcal',
-              protein: '8g',
-              carbs: '12g',
-              fat: '4g'
-            },
-            preparationTime: '5-7 mins',
-            spicyLevel: 'None',
-            isVegetarian: true,
-            allergens: ['Dairy'],
-            servingSize: '240ml',
-            rating: 4.7
-          },
-          {
-            id: 4,
-            name: 'Chocolate Cake',
-            price: 399,
-            description: 'Decadent chocolate cake with rich frosting',
-            category: 'desserts',
-            image: '/img/cake.jpg',
-            detailedDescription: 'Three layers of moist chocolate cake with rich chocolate ganache and whipped cream',
-            ingredients: ['Dark Chocolate', 'Flour', 'Eggs', 'Butter', 'Sugar', 'Whipped Cream'],
-            nutritionalInfo: {
-              calories: '380 kcal',
-              protein: '5g',
-              carbs: '45g',
-              fat: '18g'
-            },
-            preparationTime: '10-15 mins',
-            spicyLevel: 'None',
-            isVegetarian: true,
-            allergens: ['Dairy', 'Eggs', 'Gluten'],
-            servingSize: '1 slice',
-            rating: 4.9
-          },
-          {
-            id: 5,
-            name: 'Ice Cream',
-            price: 150,
-            description: 'Creamy ice cream with a variety of flavors',
-            category: 'desserts',
-            image: '/img/icecream.jpg',
-            detailedDescription: 'Smooth and creamy ice cream made with fresh ingredients and natural flavors',
-            ingredients: ['Cream', 'Milk', 'Sugar', 'Natural Flavors'],
-            nutritionalInfo: {
-              calories: '200 kcal',
-              protein: '4g',
-              carbs: '25g',
-              fat: '10g'
-            },
-            preparationTime: '2-3 mins',
-            spicyLevel: 'None',
-            isVegetarian: true,
-            allergens: ['Dairy'],
-            servingSize: '2 scoops',
-            rating: 4.5
-          },
-          {
-            id: 6,
-            name: 'Pasta',
-            price: 200,
-            description: 'Creamy pasta with a variety of sauces',
-            category: 'breakfast',
-            image: '/img/pasta.jpg',
-            detailedDescription: 'Al dente pasta tossed in creamy sauce with fresh herbs and parmesan',
-            ingredients: ['Pasta', 'Cream Sauce', 'Parmesan', 'Fresh Herbs', 'Olive Oil'],
-            nutritionalInfo: {
-              calories: '320 kcal',
-              protein: '12g',
-              carbs: '40g',
-              fat: '14g'
-            },
-            preparationTime: '15-20 mins',
-            spicyLevel: 'Mild',
-            isVegetarian: true,
-            allergens: ['Dairy', 'Gluten'],
-            servingSize: '300g',
-            rating: 4.7
-          }
-        ];
-        setMenu(dummyMenu);
-        setFilteredMenu(dummyMenu);
+        // fallback to dummy data if needed
       } finally {
         setLoading(false);
       }
     };
 
     fetchMenu();
-  }, [restaurantId]);
+  }, [restaurantId, location.state, refreshKey]);
+
 
   // Enhanced search and filter functionality
   useEffect(() => {
@@ -208,7 +99,7 @@ function PreorderPage() {
 
     // Apply category filter
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.category.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
@@ -252,12 +143,46 @@ function PreorderPage() {
     }
   }, [auth.currentUser]);
 
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      console.log('Cart update event received');
+      if (isAuthenticated && contextUser) {
+        const userId = contextUser.uid || contextUser._id || contextUser.email;
+        if (userId) {
+          const savedCart = localStorage.getItem(`cart_${userId}`);
+          console.log('Saved cart from localStorage:', savedCart);
+          if (savedCart) {
+            const cartItems = JSON.parse(savedCart);
+            const cartStatus = cartItems.reduce((acc, item) => {
+              acc[item.id] = true;
+              return acc;
+            }, {});
+            console.log('Updated cart status:', cartStatus);
+            setItemsInCart(cartStatus);
+          } else {
+            console.log('No cart found, clearing items');
+            setItemsInCart({});
+          }
+        }
+      }
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+  }, [isAuthenticated, contextUser]);
+
   // Add this useEffect to handle automatic modal opening
   useEffect(() => {
     if (location.state?.selectedItemId && menu.length > 0) {
       const selectedItem = menu.find(item => item.id.toString() === location.state.selectedItemId.toString());
       if (selectedItem) {
-        setSelectedItem(selectedItem);
+        setSelectedItem({
+          ...selectedItem,
+          ingredients: selectedItem.ingredients || [],
+          allergens: selectedItem.allergens || [],
+        });
+
         setIsModalOpen(true);
       }
     }
@@ -267,7 +192,7 @@ function PreorderPage() {
     setQuantities(prev => {
       const currentQuantity = prev[itemId] || 1;
       const newQuantity = currentQuantity + change;
-      
+
       // If item is in cart
       if (itemsInCart[itemId]) {
         const userId = auth.currentUser.uid;
@@ -275,7 +200,7 @@ function PreorderPage() {
         if (savedCart) {
           const cartItems = JSON.parse(savedCart);
           const itemIndex = cartItems.findIndex(item => item.id === itemId);
-          
+
           if (itemIndex !== -1) {
             if (newQuantity <= 0) {
               // Remove item if quantity becomes 0
@@ -283,7 +208,7 @@ function PreorderPage() {
               setItemsInCart(prev => ({ ...prev, [itemId]: false }));
               localStorage.setItem(`cart_${userId}`, JSON.stringify(cartItems));
               window.dispatchEvent(new Event('cartUpdated'));
-              
+
               // Reset quantity to 1 for future additions
               return { ...prev, [itemId]: 1 };
             } else {
@@ -294,18 +219,23 @@ function PreorderPage() {
           }
         }
       }
-      
+
       // Don't allow quantity to go below 1 for non-cart items
       return { ...prev, [itemId]: Math.max(1, newQuantity) };
     });
   };
 
   const addToCart = (item) => {
-    if (auth.currentUser) {
-      const userId = auth.currentUser.uid;
+    if (isAuthenticated && contextUser) {
+      const userId = contextUser.uid || contextUser._id || contextUser.email;
+      if (!userId) {
+        toast.error('User ID not found');
+        return;
+      }
+      
       const cartKey = `cart_${userId}`;
       let cartItems = [];
-      
+
       // Get existing cart
       const savedCart = localStorage.getItem(cartKey);
       if (savedCart) {
@@ -326,7 +256,10 @@ function PreorderPage() {
           id: item.id,
           name: item.name,
           price: item.price,
-          quantity: 1
+          quantity: 1,
+          image: item.image,
+          description: item.description,
+          restaurant: restaurantId
         });
       }
 
@@ -335,7 +268,7 @@ function PreorderPage() {
 
       // Dispatch cart update event
       window.dispatchEvent(new Event('cartUpdated'));
-      
+
       toast.success('Item added to cart');
     } else {
       toast.error('Please sign in to add items to cart');
@@ -343,11 +276,16 @@ function PreorderPage() {
   };
 
   const removeFromCart = (itemId) => {
-    if (auth.currentUser) {
-      const userId = auth.currentUser.uid;
+    if (isAuthenticated && contextUser) {
+      const userId = contextUser.uid || contextUser._id || contextUser.email;
+      if (!userId) {
+        toast.error('User ID not found');
+        return;
+      }
+      
       const savedCart = localStorage.getItem(`cart_${userId}`);
       let cartItems = savedCart ? JSON.parse(savedCart) : [];
-      
+
       // Remove or decrease quantity
       const existingItemIndex = cartItems.findIndex(item => item.id === itemId);
       if (existingItemIndex >= 0) {
@@ -363,7 +301,7 @@ function PreorderPage() {
 
       // Dispatch cart update event
       window.dispatchEvent(new Event('cartUpdated'));
-      
+
       toast.success('Item removed from cart');
     }
   };
@@ -406,10 +344,10 @@ function PreorderPage() {
       localStorage.setItem(`cart_${userId}`, JSON.stringify(cartItems));
       setItemsInCart(prev => ({ ...prev, [selectedItem.id]: true }));
       setQuantities(prev => ({ ...prev, [selectedItem.id]: modalQuantity }));
-      
+
       window.dispatchEvent(new Event('cartUpdated'));
       handleCloseModal();
-      
+
       toast.success(`Added ${modalQuantity} ${selectedItem.name}(s) to cart`);
     }
   };
@@ -418,7 +356,7 @@ function PreorderPage() {
   const scrollMenu = (direction) => {
     const container = scrollContainerRef.current;
     const scrollAmount = 300; // Adjust this value as needed
-    
+
     if (container) {
       const targetScroll = container.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
       container.scrollTo({
@@ -436,7 +374,7 @@ function PreorderPage() {
     <div className="bg-[#d0b290] min-h-screen">
       {/* Logo */}
       <div className="hidden md:block pt-4 pl-4">
-        <img 
+        <img
           src="/img/Tastoria.jpg"
           alt="Tastoria Logo"
           className="h-20 w-32 lg:h-26 lg:w-40"
@@ -447,30 +385,41 @@ function PreorderPage() {
       <div className="flex-1 pb-28 md:pb-24">
         {/* Search Bar */}
         <div className="sticky top-0 z-10 bg-[#d0b290]/90 backdrop-blur-sm px-3 py-3 sm:px-4 sm:py-4">
-          <div className="relative w-full max-w-xl mx-auto">
-            <Input
-              type="text"
-              placeholder="Search menu..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2.5 pl-11 text-sm 
-                text-gray-700 bg-white/95 backdrop-blur-sm border border-gray-200/80 
-                rounded-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                transition-all duration-200"
-              labelProps={{
-                className: "hidden",
-              }}
-            />
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          <div className="relative w-full max-w-xl mx-auto flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type="text"
+                placeholder="Search menu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2.5 pl-11 text-sm 
+                  text-gray-700 bg-white/95 backdrop-blur-sm border border-gray-200/80 
+                  rounded-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                  transition-all duration-200"
+                labelProps={{
+                  className: "hidden",
+                }}
+              />
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              </div>
             </div>
+            <button
+              onClick={() => setRefreshKey(prev => prev + 1)}
+              className="px-4 py-2.5 bg-white/95 backdrop-blur-sm border border-gray-200/80 rounded-full shadow-sm hover:bg-white transition-all duration-200 flex items-center justify-center"
+              title="Refresh menu"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           </div>
         </div>
 
         {/* Menu Grid */}
         <div className="px-2 sm:px-4 lg:px-6 pt-3">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6 lg:gap-8">
-            {filteredMenu.map((item) => (
+            {(filteredMenu || []).map((item) => (
               <div
                 key={item.id}
                 onClick={() => handleOpenModal(item)}
@@ -478,9 +427,9 @@ function PreorderPage() {
               >
                 {/* Image container - Increased height for larger screens */}
                 <div className="relative h-40 sm:h-48 md:h-56 lg:h-64">
-                  <img 
-                    src={item.image} 
-                    alt={item.name} 
+                  <img
+                    src={item.image}
+                    alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
@@ -513,18 +462,24 @@ function PreorderPage() {
         </div>
       </div>
 
-      {/* Mobile Cart Button - Fixed at bottom left */}
-      <div className="md:hidden fixed bottom-20 left-4 z-30">
+      {/* Cart Button - Fixed at bottom left for mobile, top right for desktop */}
+      <div className="fixed bottom-20 left-4 z-30 md:hidden">
         <Button
           size="lg"
           color="blue"
-          className="rounded-full shadow-lg flex items-center gap-2"
-          onClick={() => navigate('/cart')}
+          className="rounded-full shadow-lg flex items-center gap-2 hover:scale-105 transition-transform duration-200"
+          onClick={() => {
+            console.log('Cart button clicked, navigating to cart');
+            navigate('/cart');
+          }}
         >
-          <ShoppingCartIcon className="h-5 w-5" />
-          <span>Cart</span>
+          {/* Cart icon with fallback */}
+          <div className="relative">
+            <ShoppingCartIcon className="h-5 w-5" />
+          </div>
+          <span className="hidden sm:inline">Cart</span>
           {Object.keys(itemsInCart).length > 0 && (
-            <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
               {Object.keys(itemsInCart).length}
             </span>
           )}
@@ -541,10 +496,9 @@ function PreorderPage() {
                 onClick={() => setSelectedCategory(category.id)}
                 className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 
                   rounded-full text-sm font-medium snap-start
-                  transition-all duration-200 ${
-                    selectedCategory === category.id 
-                      ? 'bg-blue-500 text-white shadow-md scale-105'
-                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  transition-all duration-200 ${selectedCategory === category.id
+                    ? 'bg-blue-500 text-white shadow-md scale-105'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                   }`}
               >
                 <span className="text-lg">{category.icon}</span>
@@ -562,7 +516,7 @@ function PreorderPage() {
         handler={handleCloseModal}
         className="bg-white rounded-xl shadow-xl"
       >
-        {selectedItem && (
+        {selectedItem ? (
           <>
             <DialogHeader className="flex items-center justify-between py-3 px-4">
               <Typography variant="h5" color="blue-gray" className="text-lg">
@@ -630,10 +584,10 @@ function PreorderPage() {
                         Nutritional Info
                       </Typography>
                       <div className="space-y-0.5 text-sm">
-                        <div>Calories: {selectedItem.nutritionalInfo.calories}</div>
-                        <div>Protein: {selectedItem.nutritionalInfo.protein}</div>
-                        <div>Carbs: {selectedItem.nutritionalInfo.carbs}</div>
-                        <div>Fat: {selectedItem.nutritionalInfo.fat}</div>
+                        <div>Calories: {selectedItem.nutritionalInfo?.calories ?? '-'}</div>
+                        <div>Protein: {selectedItem.nutritionalInfo?.protein ?? '-'}</div>
+                        <div>Carbs: {selectedItem.nutritionalInfo?.carbs ?? '-'}</div>
+                        <div>Fat: {selectedItem.nutritionalInfo?.fat ?? '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -644,7 +598,7 @@ function PreorderPage() {
                       Ingredients
                     </Typography>
                     <div className="flex flex-wrap gap-1.5">
-                      {selectedItem.ingredients.map((ingredient) => (
+                      {selectedItem?.ingredients?.map((ingredient) => (
                         <span
                           key={ingredient}
                           className="bg-blue-gray-50 px-2 py-0.5 rounded-full text-xs"
@@ -652,11 +606,12 @@ function PreorderPage() {
                           {ingredient}
                         </span>
                       ))}
+
                     </div>
                   </div>
 
                   {/* Allergens */}
-                  {selectedItem.allergens && selectedItem.allergens.length > 0 && (
+                  {selectedItem?.allergens?.length > 0 && (
                     <div>
                       <Typography variant="h6" color="blue-gray" className="text-sm mb-1">
                         Allergens
@@ -673,6 +628,7 @@ function PreorderPage() {
                       </div>
                     </div>
                   )}
+
 
                   {/* Quantity and Price */}
                   <div className="space-y-3 pt-2">
@@ -731,6 +687,8 @@ function PreorderPage() {
               </Button>
             </DialogFooter>
           </>
+        ) : (
+          <div className="hidden" />
         )}
       </Dialog>
 
