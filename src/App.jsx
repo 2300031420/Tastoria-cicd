@@ -3,23 +3,23 @@ import { ThemeProvider } from "@material-tailwind/react";
 import { Navbar } from "@/widgets/layout";
 import routes from "@/routes";
 import Home from "@/pages/Home.jsx";
+import PreorderPage from "@/pages/Preorderpage.jsx";
 
-import QRScanner from "./components/QRScanner";
-import PreorderPage from "@/pages/Preorderpage";
-import { CafeList } from "./pages/CafeList";
-import { SlotBooking } from "./pages/SlotBooking";
-import { SignIn } from './pages/SignIn';
-import { SignUp } from './pages/SignUp';
-import { Profile } from './pages/Profile';
-import PreorderModal from './pages/PreorderModal';
-import Cart from "./pages/Cart";
-import { ChatBot } from './components/ChatBot';
-import { AdminLogin } from "./pages/AdminLogin";
-import { AdminPortal } from "./pages/AdminPortal";
-import { MenuManagement } from "./pages/admin/MenuManagement";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import CafeManagement from "./pages/admin/CafeManagement";
-import OrderManagement from "./pages/admin/OrderManagement";
+import QRScanner from "@/components/QRScanner.jsx";
+import { CafeList } from "@/pages/CafeList.jsx";
+import { SlotBooking } from "@/pages/SlotBooking.jsx";
+import { SignIn } from '@/pages/SignIn.jsx';
+import { SignUp } from '@/pages/SignUp.jsx';
+import { Profile } from '@/pages/Profile.jsx';
+import PreorderModal from "@/pages/PreorderModal.jsx";
+import Cart from "@/pages/Cart.jsx";
+import { ChatBot } from '@/components/ChatBot.jsx';
+import { AdminLogin } from "@/pages/AdminLogin.jsx";
+import { AdminPortal } from "@/pages/AdminPortal.jsx";
+import { MenuManagement } from "@/pages/admin/MenuManagement.jsx";
+import { ProtectedRoute } from "@/components/ProtectedRoute.jsx";
+import CafeManagement from "@/pages/admin/CafeManagement.jsx";
+import OrderManagement from "@/pages/admin/OrderManagement.jsx";
 function App() {
   return (
     <>
