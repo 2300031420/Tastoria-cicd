@@ -10,7 +10,7 @@ import { Profile } from "@/pages/Profile";
 import { SignIn } from "@/pages/SignIn";
 import { SignUp } from "@/pages/SignUp";
 import QRScanner from "@/components/QRScanner";
-import PreorderPage from "@/pages/PreorderPage";
+import PreorderPage from "@/pages/Preorderpage";
 import { CafeList } from "@/pages/CafeList";
 import OrderManagement from "./pages/admin/OrderManagement"; // adjust the path if needed
 
