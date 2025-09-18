@@ -2,9 +2,10 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@material-tailwind/react";
 import { Navbar } from "@/widgets/layout";
 import routes from "@/routes";
-import { Home } from "./pages/Home.jsx";
+import Home from "@/pages/Home.jsx";
+
 import QRScanner from "./components/QRScanner";
-import PreorderPage from "./pages/Preorderpage";
+import PreorderPage from "@/pages/Preorderpage";
 import { CafeList } from "./pages/CafeList";
 import { SlotBooking } from "./pages/SlotBooking";
 import { SignIn } from './pages/SignIn';
