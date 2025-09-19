@@ -10,7 +10,7 @@ import { Profile } from "@/pages/Profile.jsx";
 import { SignIn } from "@/pages/SignIn.jsx";
 import { SignUp } from "@/pages/SignUp.jsx";
 import QRScanner from "@/components/QRScanner.jsx";
-import PreorderPage from "@/pages/Preorderpage.jsx";
+import PreorderPage from "@/pages/PreorderPage.jsx";
 import { CafeList } from "@/pages/CafeList.jsx";
 import OrderManagement from "@/pages/admin/OrderManagement.jsx"; // adjust the path if needed
 

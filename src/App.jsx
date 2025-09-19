@@ -3,7 +3,7 @@ import { ThemeProvider } from "@material-tailwind/react";
 import { Navbar } from "@/widgets/layout";
 import routes from "@/routes";
 import Home from "@/pages/Home.jsx";
-import PreorderPage from "@/pages/Preorderpage.jsx";
+import PreorderPage from "@/pages/PreorderPage.jsx";
 
 import QRScanner from "@/components/QRScanner.jsx";
 import { CafeList } from "@/pages/CafeList.jsx";
