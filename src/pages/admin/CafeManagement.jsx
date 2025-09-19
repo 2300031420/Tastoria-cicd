@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, X, Camera, MapPin, Star, Clock, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Route } from "react-router-dom";
-import PreorderPage from "../PreorderModal";
+import PreorderPage from "../PreorderModal.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
